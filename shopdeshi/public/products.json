@@ -1,0 +1,122 @@
+[
+  {
+    "id": "0",
+    "name": "Car Decorator Plushie",
+    "description": "Cute plushie for your car.",
+    "price": 12.99,
+    "image": "/images/products/product1.jpg",
+    "category": "doll"
+  },
+  {
+    "id": "1",
+    "name": "Lafufu",
+    "description": "Adorable lafufu plush.",
+    "price": 9.99,
+    "image": "/images/products/product2.png",
+    "category": "doll"
+  },
+  {
+    "id": "2",
+    "name": "baby hammock",
+    "description": "Comfy hammock for babies.",
+    "price": 24.99,
+    "image": "/images/products/product3.png",
+    "category": "furniture"
+  },
+  {
+    "id": "3",
+    "name": "Crochet Bee",
+    "description": "Handmade crochet bee.",
+    "price": 14.99,
+    "image": "/images/products/product4.png",
+    "category": "crochet"
+  },
+  {
+    "id": "4",
+    "name": "Diy multi_colored ribbons",
+    "description": "Colorful DIY ribbons.",
+    "price": 7.99,
+    "image": "/images/products/product5.jpg",
+    "category": "accessories"
+  },
+  {
+    "id": "5",
+    "name": "Cat hat",
+    "description": "Hat for your cat.",
+    "price": 8.99,
+    "image": "/images/products/product6.png",
+    "category": "clothing"
+  },
+  {
+    "id": "6",
+    "name": "clay mirror",
+    "description": "Decorative clay mirror.",
+    "price": 19.99,
+    "image": "/images/products/product7.jpg",
+    "category": "accessories"
+  },
+  {
+    "id": "7",
+    "name": "Crochet sushis",
+    "description": "Cute crochet sushi set.",
+    "price": 11.99,
+    "image": "/images/products/product8.jpg",
+    "category": "crochet"
+  },
+  {
+    "id": "8",
+    "name": "clay flower vase",
+    "description": "Handmade clay vase.",
+    "price": 15.99,
+    "image": "/images/products/product9.jpg",
+    "category": "accessories"
+  },
+  {
+    "id": "9",
+    "name": "cherry rug",
+    "description": "Cherry-themed rug.",
+    "price": 13.99,
+    "image": "/images/products/product10.png",
+    "category": "rug"
+  },
+  {
+    "id": "10",
+    "name": "stitch",
+    "description": "Stitch plushie.",
+    "price": 10.99,
+    "image": "/images/products/product11.png",
+    "category": "doll"
+  },
+  {
+    "id": "11",
+    "name": "sage green rug",
+    "description": "Sage green rug.",
+    "price": 16.99,
+    "image": "/images/products/product12.jpg",
+    "category": "rug"
+  },
+  {
+    "id": "12",
+    "name": "Dreamy lounge sofa",
+    "description": "Dreamy mini sofa.",
+    "price": 29.99,
+    "image": "/images/products/product13.png",
+    "category": "furniture"
+  },
+  {
+    "id": "13",
+    "name": "Crochet Chick Cup",
+    "description": "Chick cup cozy.",
+    "price": 6.99,
+    "image": "/images/products/product14.jpg",
+    "category": "crochet"
+  },
+  {
+    "id": "14",
+    "name": "cute cat giveaway",
+    "description": "Cute cat plush.",
+    "price": 5.99,
+    "image": "/images/products/product15.jpg",
+    "category": "doll"
+  }
+] 

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "1754491152298",
+    "name": "plush seater",
+    "description": "perfect size seater to lounge in the room.",
+    "price": 80,
+    "image": "/uploads/1754491152296-j82bpjgm57.png"
+  },
+  {
+    "id": "1753123877556",
+    "name": "Elegant Bracelet",
+    "description": "Handmade crochet bracelet with intricate patterns.",
+    "price": 15,
+    "image": "/uploads/1753123877554-o2qit5jm9fa.png",
+    "category": "accessories"
+  },
+  {
+    "id": "1753123311869",
+    "name": "Summer Dress",
+    "description": "Light and breezy summer dress for all occasions.",
+    "price": 45,
+    "image": "/uploads/1753123311867-aneo2s67sxm.png",
+    "category": "clothing"
+  },
+  {
+    "id": "1753123141264",
+    "name": "Cute Plush Doll",
+    "description": "Super cute plush doll, perfect for kids.",
+    "price": 20,
+    "image": "/uploads/1753123141258-dof41efk52t.webp",
+    "category": "doll"
+  },
+  {
+    "id": "1753122950308",
+    "name": "Modern Sofa",
+    "description": "Comfortable and stylish modern sofa.",
+    "price": 250,
+    "image": "/uploads/1753122950307-fn2fkirbtes.png",
+    "category": "furniture"
+  },
+  {
+    "id": "1753122869416",
+    "name": "Rainbow Crochet Blanket",
+    "description": "Colorful crochet blanket to keep you warm.",
+    "price": 60,
+    "image": "/uploads/1753122869413-6uuvjw6f32h.jpg",
+    "category": "crochet"
+  },
+  {
+    "id": "1753122869417",
+    "name": "Boho Rug",
+    "description": "Handwoven boho rug for your living room.",
+    "price": 80,
+    "image": "/images/products/product4.png",
+    "category": "rug"
+  }
+]

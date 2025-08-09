@@ -1,0 +1,14 @@
+[
+  {
+    "id": "seller1",
+    "name": "Ayesha Rahman",
+    "photo": "/images/artisans/ayesha.jpg",
+    "story": "Ayesha started her craft journey in rural Bangladesh, learning weaving from her grandmother. Her passion is to bring traditional designs to modern homes."
+  },
+  {
+    "id": "seller2",
+    "name": "Mina Das",
+    "photo": "/images/artisans/mina.jpg",
+    "story": "Mina is a self-taught ceramic artist who loves making playful, colorful pottery inspired by nature."
+  }
+] 
