@@ -1,0 +1,1 @@
+ShopDeshi is a direct marketplace that connects deshi artisans and buyers. This platform creates a bridge between handicraft makers and buyers without the involvement of any third parties. Direct communication with users, rating system, secure payment and delivery options are the main priorities of this concept.
