@@ -36,17 +36,17 @@ const productNames = [
 
 const Home = () => {
   return (
-    <div className="bg-pink-50 min-h-screen pb-10">
+    <div className="min-h-screen pb-10 bg-pink-50">
       <Container className="py-8">
         <HomeBanner />
-        <h2 className="text-3xl font-bold text-center text-shop-dark-pink mt-12 mb-6">Shop Our Cutest Picks</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <h2 className="mt-12 mb-6 text-3xl font-bold text-center text-shop-dark-pink">Shop Our Cutest Picks</h2>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {productImages.map((src, idx) => (
-            <Card key={idx} className="bg-white/80 border-pink-200 shadow-pink-100 hover:shadow-lg transition-all">
+            <Card key={idx} className="transition-all border-pink-200 bg-white/80 shadow-pink-100 hover:shadow-lg">
               <CardContent className="flex flex-col items-center p-4">
-                <Image src={src} alt={productNames[idx]} width={180} height={180} className="rounded-lg object-cover mb-4" />
-                <CardTitle className="text-lg text-shop-dark-pink mb-2 text-center">{productNames[idx]}</CardTitle>
-                <CardFooter className="w-full flex justify-center p-0">
+                <Image src={src} alt={productNames[idx]} width={180} height={180} className="object-cover mb-4 rounded-lg" />
+                <CardTitle className="mb-2 text-lg text-center text-shop-dark-pink">{productNames[idx]}</CardTitle>
+                <CardFooter className="flex justify-center w-full p-0">
                   <Link href="/shop" className="px-4 py-1.5 rounded bg-pink-200 text-shop-dark-pink font-semibold hover:bg-pink-300 transition">Shop</Link>
                 </CardFooter>
               </CardContent>

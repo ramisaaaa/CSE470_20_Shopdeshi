@@ -22,54 +22,59 @@ export default function UploadPage() {
     e.preventDefault();
     setSuccess(false);
     setError("");
-
     const form = formRef.current;
     if (!form) return;
 
-    const formData = new FormData(form);
-    const imageFile = formData.get("image") as File;
+    try {
+      const formData = new FormData(form);
+      const name = String(formData.get("name") || "").trim();
+      const description = String(formData.get("description") || "").trim();
+      const priceStr = String(formData.get("price") || "0");
+      const category = String(formData.get("category") || "").trim();
+      const imageFile = formData.get("image") as File | null;
 
-    // STEP 1: Upload image to backend
-    const imageForm = new FormData();
-    imageForm.append("image", imageFile);
+      if (!name || !description || !priceStr || !category || !imageFile) {
+        setError("Please fill all fields and select an image.");
+        return;
+      }
 
-    const uploadRes = await fetch("http://localhost:4000/upload", {
-      method: "POST",
-      body: imageForm,
-    });
+      // 1) Upload image to backend
+      const imageUploadFd = new FormData();
+      imageUploadFd.append("image", imageFile);
+      const uploadRes = await fetch("http://localhost:4000/upload", {
+        method: "POST",
+        body: imageUploadFd,
+      });
+      if (!uploadRes.ok) {
+        throw new Error("Image upload failed");
+      }
+      const uploadJson = await uploadRes.json();
+      const imageUrl = uploadJson.image_url as string;
 
-    if (!uploadRes.ok) {
-      setError("Image upload failed.");
-      return;
-    }
+      // 2) Save product in backend DB
+      const newPrice = parseFloat(priceStr);
+      const saveRes = await fetch("http://localhost:4000/addproduct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          image: imageUrl,
+          category,
+          new_price: newPrice,
+          old_price: newPrice,
+          description,
+        }),
+      });
+      if (!saveRes.ok) {
+        const txt = await saveRes.text();
+        throw new Error(`Save failed: ${txt}`);
+      }
 
-    const uploadData = await uploadRes.json();
-    const imageUrl = uploadData.image_url;
-
-    // STEP 2: Upload product data
-    const productData = {
-      name: formData.get("name"),
-      description: formData.get("description"),
-      new_price: parseFloat(formData.get("price") as string),
-      old_price: parseFloat(formData.get("price") as string), // Set old price same as new by default
-      category: formData.get("category"),
-      image: imageUrl,
-    };
-
-    const productRes = await fetch("http://localhost:4000/addproduct", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(productData),
-    });
-
-    if (productRes.ok) {
       setSuccess(true);
       form.reset();
       setPreview(null);
-    } else {
-      setError("Product save failed. Try again.");
+    } catch (err: any) {
+      setError(err?.message || "Upload failed. Try again.");
     }
   }
 
@@ -112,4 +117,4 @@ export default function UploadPage() {
       </form>
     </main>
   );
-}
+} 

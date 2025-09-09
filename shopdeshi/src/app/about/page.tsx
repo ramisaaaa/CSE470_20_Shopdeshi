@@ -6,7 +6,8 @@ import Link from "next/link";
 export default function AboutPage() {
   const [artisans, setArtisans] = useState<any[]>([]);
   useEffect(() => {
-    fetch("/artisans.json")
+    fetch("/artisans.json")  
+
       .then((res) => res.ok ? res.json() : [])
       .then((data) => setArtisans(data));
   }, []);

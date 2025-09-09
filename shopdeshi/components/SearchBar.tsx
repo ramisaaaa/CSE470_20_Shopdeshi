@@ -20,6 +20,8 @@ interface SearchBarProps {
   className?: string;
 }
 
+const API_BASE = 'http://localhost:4000';
+
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch, className = "" }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -32,17 +34,30 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, className = "" }) => {
   const searchRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
 
-  // Load products on component mount
+  // Load products on component mount (from backend)
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const response = await fetch('/products.json');
-                 if (response.ok) {
-           const data = await response.json();
-           setProducts(data);
-         }
+        setIsLoading(true);
+        const response = await fetch(`${API_BASE}/allproducts`);
+        if (response.ok) {
+          const data = await response.json();
+          const mapped: Product[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+            id: String(p.id ?? p._id),
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.new_price ?? p.price ?? 0),
+            image: p.image,
+            category: p.category || '',
+          }));
+          setProducts(mapped);
+        } else {
+          setProducts([]);
+        }
       } catch (error) {
-        console.error('Error loading products:', error);
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadProducts();
@@ -79,7 +94,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, className = "" }) => {
         return product.category === selectedCategory;
       }
       
-      // If no filters, return all products
       return true;
     });
 
@@ -138,7 +152,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, className = "" }) => {
             <Search className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-4 top-1/2" />
             <Input
               type="text"
-              placeholder="Search products..."
+              placeholder={isLoading ? "Loading products..." : "Search products..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -227,24 +241,24 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, className = "" }) => {
           )}
         </div>
 
-                 {/* Search Button */}
-         <Button onClick={handleSearch} className="h-12 px-6 text-base bg-shop-orange hover:bg-shop-orange/90">
-           Search
-         </Button>
+        {/* Search Button */}
+        <Button onClick={handleSearch} className="h-12 px-6 text-base bg-shop-orange hover:bg-shop-orange/90">
+          Search
+        </Button>
       </div>
 
       {/* Active Filters Display */}
       {(searchQuery || selectedCategory) && (
         <div className="flex items-center gap-2 mt-3">
           <span className="text-sm text-gray-600">Active filters:</span>
-                     {searchQuery && (
-             <Badge variant="secondary" className="flex items-center gap-1">
-               Search: &quot;{searchQuery}&quot;
-               <button onClick={() => setSearchQuery('')}>
-                 <X className="w-3 h-3" />
-               </button>
-             </Badge>
-           )}
+          {searchQuery && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              Search: &quot;{searchQuery}&quot;
+              <button onClick={() => setSearchQuery('')}>
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          )}
           {selectedCategory && (
             <Badge variant="secondary" className="flex items-center gap-1">
               Category: {categoriesData.find(c => c.href === selectedCategory)?.title}

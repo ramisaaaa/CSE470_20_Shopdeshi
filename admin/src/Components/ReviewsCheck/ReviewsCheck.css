@@ -1,0 +1,206 @@
+.review-management {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.review-header h2 {
+  color: #2b2d42;
+  margin: 0;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-controls button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.filter-controls button.active,
+.filter-controls button:hover {
+  background: #4361ee;
+  color: white;
+  border-color: #4361ee;
+}
+
+.alert {
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.alert-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.review-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.2s;
+}
+
+.review-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.review-item.flagged {
+  border-left: 4px solid #e63946;
+  background: #fff5f5;
+}
+
+.review-content {
+  flex: 1;
+  padding-right: 15px;
+}
+
+.review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.user {
+  font-weight: bold;
+  color: #333;
+}
+
+.product {
+  font-style: italic;
+  color: #6c757d;
+}
+
+.comment {
+  margin-bottom: 10px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.bad-word-warning {
+  color: #e63946;
+  font-weight: bold;
+  padding: 8px;
+  background: #ffeaea;
+  border-radius: 4px;
+  display: inline-block;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.review-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.btn-approve,
+.btn-delete {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.btn-approve {
+  background: #2a9d8f;
+  color: white;
+}
+
+.btn-approve:hover {
+  background: #21867a;
+}
+
+.btn-delete {
+  background: #e63946;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #d32f2f;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .review-item {
+    flex-direction: column;
+  }
+  
+  .review-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 15px;
+    min-width: auto;
+  }
+  
+  .review-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-controls {
+    width: 100%;
+    justify-content: center;
+  }
+}

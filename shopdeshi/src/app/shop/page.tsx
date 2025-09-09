@@ -6,7 +6,7 @@ import { useCart } from "@/components/CartContext";
 import { useWishlist } from "@/components/WishlistContext";
 import { Heart, Star } from "lucide-react";
 
-// Demo products fallback
+
 import product1 from '../../../images/products/product1.jpg';
 import product2 from '../../../images/products/product2.png';
 import product3 from '../../../images/products/product3.png';
@@ -41,7 +41,7 @@ const demoProducts = [
   { id: "demo-14", name: 'cute cat giveaway', price: 5.99, new_price: 5.99, image: product15, description: 'Cute cat giveaway item.', category: 'Giveaways' },
 ];
 
-// Utility: Calculate average rating for a product
+
 function getAverageRating(reviews: { rating: number }[] = []) {
   if (!reviews.length) return 0;
   return (
@@ -57,43 +57,40 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch products from backend and combine with demo products
   useEffect(() => {
-    // Start with demo products
-    let allProducts = [...demoProducts];
-
-    // Fetch from API and combine
-    fetch("http://localhost:4000/allproducts")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch products");
-        return res.json();
-      })
-      .then((apiProducts) => {
-        if (Array.isArray(apiProducts) && apiProducts.length > 0) {
-          // Transform API products to match our format and add unique identifiers
-          const transformedApiProducts = apiProducts.map((product, index) => ({
-            ...product,
-            id: product._id || `api-${index}`, // Use _id from MongoDB or create unique id
-            price: product.new_price, // Ensure price consistency
-          }));
-          
-          // Combine demo products with API products
-          allProducts = [...demoProducts, ...transformedApiProducts];
+    const load = async () => {
+      try {
+        const res = await fetch(`http://localhost:4000/allproducts`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
-        
-        setProducts(allProducts);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.warn("API fetch failed, using demo products only:", err.message);
-        // If API fails, still show demo products
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const mapped = data.map((p: any) => ({
+            id: String(p.id),
+            name: p.name,
+            image: p.image,
+            price: p.new_price,
+            new_price: p.new_price,
+            category: p.category,
+            reviews: p.reviews || [],
+          }));
+          // Merge backend products with demo products
+          setProducts([...mapped, ...demoProducts]);
+        } else {
+          // Fallback to demos if unexpected shape
+          setProducts(demoProducts);
+        }
+      } catch (e) {
+        setError('Failed to load products. Showing demo items.');
         setProducts(demoProducts);
-        setError(`API Error: ${err.message} (showing demo products)`);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    load();
   }, []);
 
-  // Toggle wishlist for a product
   function toggleWishlist(product: any) {
     const isInWishlist = wishlist.some(item => item.id === product.id);
     if (isInWishlist) {
@@ -120,7 +117,7 @@ export default function ShopPage() {
         ) : (
           <>
             {error && (
-              <div className="mb-4 text-center text-orange-500 text-sm">{error}</div>
+              <div className="mb-4 text-sm text-center text-orange-500">{error}</div>
             )}
             {products.length === 0 ? (
               <div className="text-center text-pink-400">No products found.</div>
@@ -133,7 +130,7 @@ export default function ShopPage() {
                   const productPrice = product.new_price || product.price;
 
                   return (
-                    <div key={id} className="relative flex flex-col items-center p-4 bg-white border border-pink-100 shadow rounded-xl transition hover:shadow-lg">
+                    <div key={id} className="relative flex flex-col items-center p-4 transition bg-white border border-pink-100 shadow rounded-xl hover:shadow-lg">
                       {/* Wishlist button */}
                       <button
                         className="absolute z-10 top-3 right-3"
@@ -163,7 +160,7 @@ export default function ShopPage() {
                       
                       {/* Category badge */}
                       {product.category && (
-                        <div className="px-2 py-1 mb-2 text-xs text-gray-600 bg-gray-100 rounded-full capitalize">
+                        <div className="px-2 py-1 mb-2 text-xs text-gray-600 capitalize bg-gray-100 rounded-full">
                           {product.category}
                         </div>
                       )}

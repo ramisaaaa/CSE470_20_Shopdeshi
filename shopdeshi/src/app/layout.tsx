@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import ClientLayout from "@/components/ClientLayout";
 import { CartProvider } from "@/components/CartContext";
 import { WishlistProvider } from "@/components/WishlistContext";
+import UserSync from "@/components/UserSync";
 
 export const metadata: Metadata = {
   title: {
@@ -26,6 +27,7 @@ export default function RootLayout({
         <ClientLayout>
           <CartProvider>
             <WishlistProvider>
+              <UserSync />
               <Header />
               <SidebarLayout>{children}</SidebarLayout>
             </WishlistProvider>

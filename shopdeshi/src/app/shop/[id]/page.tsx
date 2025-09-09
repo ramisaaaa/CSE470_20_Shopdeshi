@@ -49,7 +49,8 @@ function getAverageRating(reviews) {
 }
 
 export default function ProductDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const { addToCart } = useCart();
   const { wishlist, addToWishlist, removeFromWishlist } = useWishlist();
   
@@ -69,66 +70,50 @@ export default function ProductDetailPage() {
       return;
     }
 
-    console.log("Looking for product with ID:", id);
-
     const fetchProduct = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // First check demo products
+        // Check demo products first
         const demoProduct = demoProducts.find((p) => p.id === id);
-        
         if (demoProduct) {
-          console.log("Found demo product:", demoProduct);
-          setProduct(demoProduct);
-          // Use localStorage for demo products
+          setProduct(demoProduct as any);
           const savedReviews = localStorage.getItem(`reviews_${id}`);
           setReviews(savedReviews ? JSON.parse(savedReviews) : []);
           setLoading(false);
           return;
         }
 
-        // If not a demo product, fetch from API
-        console.log("Not a demo product, fetching from API...");
-        
+        // Fetch backend products
         const response = await fetch("http://localhost:4000/allproducts");
-        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
         const data = await response.json();
-        console.log("API response:", data);
-        
         if (!Array.isArray(data)) {
           throw new Error("API did not return an array");
         }
 
-        // More comprehensive ID matching
+        // Prefer numeric 'id' match, fall back to '_id'
         const apiProduct = data.find((p) => {
-          const productId = p._id || p.id;
-          console.log(`Comparing "${productId}" with "${id}"`);
-          return productId === id || String(productId) === String(id);
+          const numericId = p.id; // expected number
+          const objectId = p._id; // string
+          return String(numericId) === String(id) || String(objectId) === String(id);
         });
 
         if (apiProduct) {
-          console.log("Found API product:", apiProduct);
           const formattedProduct = {
             ...apiProduct,
-            id: apiProduct._id || apiProduct.id,
-            price: apiProduct.new_price || apiProduct.price,
+            id: String(apiProduct.id ?? apiProduct._id),
+            price: apiProduct.new_price ?? apiProduct.price,
           };
-          
-          setProduct(formattedProduct);
+          setProduct(formattedProduct as any);
           setReviews(apiProduct.reviews || []);
         } else {
-          console.log("Product not found in API data");
-          console.log("Available product IDs:", data.map(p => p._id || p.id));
           setError("Product not found");
         }
-      } catch (err) {
-        console.error("Failed to fetch product:", err);
+      } catch (err: any) {
         setError(err.message || "Failed to fetch product");
       } finally {
         setLoading(false);
@@ -155,12 +140,10 @@ export default function ProductDetailPage() {
     };
 
     // Handle demo products with localStorage
-    if (product?.id?.startsWith('demo-')) {
+    if ((product as any)?.id?.startsWith('demo-')) {
       const updatedReviews = [newReview, ...reviews];
       setReviews(updatedReviews);
       localStorage.setItem(`reviews_${id}`, JSON.stringify(updatedReviews));
-      
-      // Reset form
       setRating(0);
       setComment("");
       setReviewerName("");
@@ -168,29 +151,21 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // Handle database products
     try {
       const response = await fetch("http://localhost:4000/addreview", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId: product.id,
+          productId: (product as any).id,
           user: reviewerName,
-          rating: rating,
-          comment: comment,
+          rating,
+          comment,
         }),
       });
-
       const data = await response.json();
-
       if (data.success) {
-        // Add the new review to the current reviews list
         const updatedReviews = [newReview, ...reviews];
         setReviews(updatedReviews);
-        
-        // Reset form
         setRating(0);
         setComment("");
         setReviewerName("");
@@ -208,21 +183,19 @@ export default function ProductDetailPage() {
 
   const toggleWishlist = () => {
     if (!product) return;
-    
-    const isInWishlist = wishlist.some(item => item.id === product.id);
+    const isInWishlist = wishlist.some(item => item.id === (product as any).id);
     if (isInWishlist) {
-      removeFromWishlist(product.id);
+      removeFromWishlist((product as any).id);
     } else {
       addToWishlist({
-        id: product.id,
-        name: product.name,
-        image: product.image,
-        price: product.new_price || product.price,
+        id: (product as any).id,
+        name: (product as any).name,
+        image: (product as any).image,
+        price: (product as any).new_price || (product as any).price,
       });
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-pink-50 flex items-center justify-center">
@@ -234,7 +207,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Error state
   if (error || !product) {
     return (
       <main className="min-h-screen bg-pink-50 py-8">
@@ -243,17 +215,10 @@ export default function ProductDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Shop
           </Link>
-          
           <div className="text-center bg-white rounded-xl shadow-lg border border-pink-100 p-8">
-            <div className="text-pink-400 mb-4 text-lg">
-              {error || "Product not found"}
-            </div>
-            <div className="text-gray-600 mb-4">
-              Product ID: <code className="bg-gray-100 px-2 py-1 rounded">{id}</code>
-            </div>
-            <Link href="/shop" className="inline-block px-6 py-3 bg-shop-dark-pink text-white font-semibold rounded-lg hover:bg-pink-600 transition">
-              Continue Shopping
-            </Link>
+            <div className="text-pink-400 mb-4 text-lg">{error || "Product not found"}</div>
+            <div className="text-gray-600 mb-4">Product ID: <code className="bg-gray-100 px-2 py-1 rounded">{id}</code></div>
+            <Link href="/shop" className="inline-block px-6 py-3 bg-shop-dark-pink text-white font-semibold rounded-lg hover:bg-pink-600 transition">Continue Shopping</Link>
           </div>
         </div>
       </main>
@@ -261,38 +226,21 @@ export default function ProductDetailPage() {
   }
 
   const avgRating = getAverageRating(reviews);
-  const isInWishlist = wishlist.some(item => item.id === product.id);
-  const productPrice = product.new_price || product.price;
+  const isInWishlist = wishlist.some(item => item.id === (product as any).id);
+  const productPrice = (product as any).new_price || (product as any).price;
 
   return (
     <main className="min-h-screen bg-pink-50 py-8">
       <div className="max-w-4xl mx-auto px-6">
-        {/* Back to Shop */}
         <Link href="/shop" className="inline-flex items-center gap-2 text-shop-dark-pink hover:underline mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to Shop
         </Link>
-
-
-
         <div className="bg-white rounded-xl shadow-lg border border-pink-100 p-8">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Product Image */}
             <div className="relative">
-              <Image 
-                src={product.image} 
-                alt={product.name} 
-                width={300} 
-                height={300} 
-                className="rounded-lg object-cover" 
-              />
-              
-              {/* Wishlist Button */}
-              <button
-                onClick={toggleWishlist}
-                className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-lg"
-                aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-              >
+              <Image src={(product as any).image} alt={(product as any).name} width={300} height={300} className="rounded-lg object-cover" />
+              <button onClick={toggleWishlist} className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-lg" aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}>
                 {isInWishlist ? (
                   <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
                 ) : (
@@ -300,19 +248,11 @@ export default function ProductDetailPage() {
                 )}
               </button>
             </div>
-
-            {/* Product Details */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-shop-dark-pink mb-4">{product.name}</h1>
-              
-              {/* Category */}
-              {product.category && (
-                <div className="inline-block px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm mb-4 capitalize">
-                  {product.category}
-                </div>
+              <h1 className="text-3xl font-bold text-shop-dark-pink mb-4">{(product as any).name}</h1>
+              {(product as any).category && (
+                <div className="inline-block px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm mb-4 capitalize">{(product as any).category}</div>
               )}
-              
-              {/* Rating */}
               <div className="flex items-center gap-2 mb-4">
                 {[1,2,3,4,5].map((n) => (
                   <Star key={n} className={n <= Math.round(Number(avgRating)) ? "w-5 h-5 text-yellow-400 fill-yellow-400" : "w-5 h-5 text-gray-300"} />
@@ -320,97 +260,37 @@ export default function ProductDetailPage() {
                 <span className="ml-2 text-pink-700 font-bold">{avgRating} / 5</span>
                 <span className="ml-2 text-gray-400 text-sm">({reviews.length} reviews)</span>
               </div>
-              
-              {/* Price */}
               <div className="text-pink-700 font-bold text-2xl mb-4">${productPrice?.toFixed(2)}</div>
-              
-              {/* Description */}
-              <div className="text-gray-700 mb-6 leading-relaxed">{product.description}</div>
-              
-              {/* Add to Cart Button */}
-              <button
-                onClick={() => addToCart({
-                  id: product.id,
-                  name: product.name,
-                  image: product.image,
-                  price: productPrice,
-                })}
-                className="px-6 py-3 bg-shop-dark-pink text-white font-semibold rounded-lg hover:bg-pink-600 transition"
-              >
-                Add to Cart
-              </button>
+              <div className="text-gray-700 mb-6 leading-relaxed">{(product as any).description}</div>
+              <button onClick={() => addToCart({ id: (product as any).id, name: (product as any).name, image: (product as any).image, price: productPrice, })} className="px-6 py-3 bg-shop-dark-pink text-white font-semibold rounded-lg hover:bg-pink-600 transition">Add to Cart</button>
             </div>
           </div>
-
-          {/* Reviews Section */}
           <div className="mt-12 border-t border-pink-100 pt-8">
             <h2 className="text-2xl font-bold text-shop-dark-pink mb-6">Customer Reviews</h2>
-            
-            {/* Add Review Form */}
             <form onSubmit={handleReviewSubmit} className="mb-8 bg-pink-50 p-6 rounded-xl">
               <h3 className="font-semibold text-shop-dark-pink mb-4">Write a Review</h3>
-              
-              {/* Name Input */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
-                <input
-                  type="text"
-                  className="w-full border border-pink-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  placeholder="Enter your name"
-                  value={reviewerName}
-                  onChange={e => setReviewerName(e.target.value)}
-                  required
-                  disabled={submittingReview}
-                />
+                <input type="text" className="w-full border border-pink-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="Enter your name" value={reviewerName} onChange={e => setReviewerName(e.target.value)} required disabled={submittingReview} />
               </div>
-              
-              {/* Rating */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
                 <div className="flex items-center gap-1">
                   {[1,2,3,4,5].map((n) => (
-                    <button
-                      type="button"
-                      key={n}
-                      onClick={() => setRating(n)}
-                      className={`p-1 ${n <= rating ? "text-yellow-400" : "text-gray-300"} hover:text-yellow-400 focus:outline-none`}
-                      aria-label={`Rate ${n} star${n > 1 ? 's' : ''}`}
-                      disabled={submittingReview}
-                    >
+                    <button type="button" key={n} onClick={() => setRating(n)} className={`p-1 ${n <= rating ? "text-yellow-400" : "text-gray-300"} hover:text-yellow-400 focus:outline-none`} aria-label={`Rate ${n} star${n > 1 ? 's' : ''}`} disabled={submittingReview}>
                       <Star className={n <= rating ? "w-6 h-6 fill-yellow-400" : "w-6 h-6"} />
                     </button>
                   ))}
                 </div>
               </div>
-              
-              {/* Comment */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Your Review</label>
-                <textarea
-                  className="w-full border border-pink-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  rows={4}
-                  placeholder="Share your thoughts about this product..."
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  required
-                  disabled={submittingReview}
-                />
+                <textarea className="w-full border border-pink-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-300" rows={4} placeholder="Share your thoughts about this product..." value={comment} onChange={e => setComment(e.target.value)} required disabled={submittingReview} />
               </div>
-              
-              <button 
-                type="submit" 
-                className="px-6 py-2 rounded-lg bg-shop-dark-pink text-white font-semibold hover:bg-pink-600 transition disabled:opacity-50"
-                disabled={submittingReview}
-              >
-                {submittingReview ? "Submitting..." : "Submit Review"}
-              </button>
+              <button type="submit" className="px-6 py-2 rounded-lg bg-shop-dark-pink text-white font-semibold hover:bg-pink-600 transition disabled:opacity-50" disabled={submittingReview}>{submittingReview ? "Submitting..." : "Submit Review"}</button>
             </form>
-
-            {/* Reviews List */}
             {reviews.length === 0 ? (
-              <div className="text-center text-pink-400 py-8">
-                No reviews yet. Be the first to review this product!
-              </div>
+              <div className="text-center text-pink-400 py-8">No reviews yet. Be the first to review this product!</div>
             ) : (
               <div className="space-y-4">
                 {reviews.map((r, i) => (
@@ -419,9 +299,7 @@ export default function ProductDetailPage() {
                       {[1,2,3,4,5].map((n) => (
                         <Star key={n} className={n <= r.rating ? "w-4 h-4 text-yellow-400 fill-yellow-400" : "w-4 h-4 text-gray-300"} />
                       ))}
-                      <span className="ml-2 text-sm text-gray-500">
-                        {new Date(r.date).toLocaleDateString()}
-                      </span>
+                      <span className="ml-2 text-sm text-gray-500">{new Date(r.date).toLocaleDateString()}</span>
                     </div>
                     <div className="font-semibold text-shop-dark-pink mb-2">{r.user}</div>
                     <div className="text-gray-700 leading-relaxed">{r.comment}</div>

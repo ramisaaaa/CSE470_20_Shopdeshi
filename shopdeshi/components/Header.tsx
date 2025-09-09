@@ -9,7 +9,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import SignIn from "@/components/SignIn";
 import CartIcon from "@/components/CartIcon";
 import MobileMenu from "@/components/MobileMenu";
-import { ClerkLoaded, SignedIn, UserButton } from '@clerk/nextjs';
+import { ClerkLoaded, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 const Header = () => {
   const router = useRouter();
@@ -41,7 +41,9 @@ const Header = () => {
             <SignedIn>
               <UserButton />
             </SignedIn>
-            <SignIn />
+            <SignedOut>
+              <SignIn />
+            </SignedOut>
           </ClerkLoaded>
         </div>
       </Container>
