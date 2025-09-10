@@ -41,7 +41,14 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+// IMPORTANT: Stripe webhook needs raw body; mount JSON after defining webhook route
+// We'll temporarily skip express.json() for the webhook path
+app.use((req, res, next) => {
+  if (req.originalUrl === '/stripe/webhook') {
+    return next();
+  }
+  return express.json()(req, res, next);
+});
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, "upload/images");
@@ -50,7 +57,8 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // MongoDB connection
-mongoose.connect("mongodb+srv://ramisatasmiah:ramisaxyz8464@cluster0.cpbqqy2.mongodb.net/shopdeshi?retryWrites=true&w=majority")
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/shopdeshi";
+mongoose.connect(MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error(" MongoDB connection error:", err));
 
@@ -852,6 +860,22 @@ const OrderSchema = new mongoose.Schema({
     type: String,
     default: 'usd'
   },
+  // Additional fields used by payment confirmation logic
+  buyerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  totalPrice: {
+    type: Number,
+    default: 0
+  },
+  purchaseDate: {
+    type: Date
+  },
+  customerInfo: {
+    type: Object,
+    default: {}
+  },
   status: {
     type: String,
     default: 'processing',
@@ -882,6 +906,13 @@ const OrderSchema = new mongoose.Schema({
     address: Object,
     phone: String,
   },
+  products: [{
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product'
+    },
+    quantity: Number
+  }],
 }, {
   collection: 'orders'
 });
@@ -912,6 +943,13 @@ app.post('/stripe/webhook', express.raw({ type: 'application/json' }), async (re
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       console.log('Processing completed session:', session.id);
+
+      // Idempotency: skip if we already processed this session
+      const existing = await Order.findOne({ stripeSessionId: session.id });
+      if (existing) {
+        console.log('Order already exists for session, skipping:', session.id);
+        return res.json({ received: true, duplicate: true });
+      }
       
       // Extract customer information
       const customerEmail = session.customer_details?.email || session.customer_email || 'unknown@example.com';
@@ -1129,6 +1167,22 @@ function getMailer() {
   }
 
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    // Try service-based config as a fallback (e.g., Gmail, Mailgun)
+    if (process.env.SMTP_SERVICE && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: process.env.SMTP_SERVICE,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          }
+        });
+        return transporter;
+      } catch (e) {
+        console.log('Failed to create service-based transporter:', e?.message);
+        return null;
+      }
+    }
     console.log('SMTP not configured properly');
     return null;
   }
@@ -1138,7 +1192,7 @@ function getMailer() {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: false,
+      secure: String(process.env.SMTP_PORT) === '465',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -2053,9 +2107,11 @@ app.post('/api/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-
-      success_url: successUrl || `${req.protocol}://${req.get('host')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${req.protocol}://${req.get('host')}/cart`,
+      // Always ensure success_url contains the session id placeholder
+      success_url: (successUrl && successUrl.includes('{CHECKOUT_SESSION_ID}'))
+        ? successUrl
+        : `${(successUrl || 'http://localhost:3000/success_payment')}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `http://localhost:3000/cart`,
       customer_email: customerInfo.email,
       metadata: {
         items: JSON.stringify(cleanItems),
@@ -2067,11 +2123,13 @@ app.post('/api/create-checkout-session', async (req, res) => {
     };
 
     console.log('Creating Stripe session...');
+    console.log('Session data:', JSON.stringify(sessionData, null, 2));
     
     const session = await stripe.checkout.sessions.create(sessionData);
 
     console.log('✅ Stripe session created:', session.id);
     console.log('Session URL:', session.url);
+    console.log('Success URL will be:', sessionData.success_url.replace('{CHECKOUT_SESSION_ID}', session.id));
     
     res.json({ 
       success: true, 
@@ -2107,6 +2165,281 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
+// Manual payment verification endpoint (for development)
+app.post('/api/verify-payment', async (req, res) => {
+  console.log('=== PAYMENT VERIFICATION ENDPOINT CALLED ===');
+  console.log('Request body:', req.body);
+  
+  try {
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      console.log('❌ No session ID provided');
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID is required'
+      });
+    }
+    
+    console.log('✅ Session ID received:', sessionId);
+
+    if (!stripe) {
+      return res.status(500).json({
+        success: false,
+        message: 'Stripe not configured'
+      });
+    }
+
+    // Retrieve the session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    // Idempotency: avoid duplicate order creation for the same session
+    const existing = await Order.findOne({ stripeSessionId: sessionId });
+    if (existing) {
+      return res.json({
+        success: true,
+        message: 'Order already exists for this session',
+        order: existing
+      });
+    }
+    
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment not completed'
+      });
+    }
+
+    // Process the payment (same logic as webhook)
+    const customerEmail = session.customer_details?.email || session.customer_email || 'unknown@example.com';
+    const customerName = session.customer_details?.name || session.shipping?.name || 'Unknown Customer';
+    const customerPhone = session.customer_details?.phone || session.shipping?.phone || '';
+    
+    const shipping = session.shipping_details || session.shipping || {};
+    const shippingAddress = shipping.address || {};
+    
+    const amount_total = session.amount_total || 0;
+    const currency = session.currency || 'usd';
+    
+    // Parse items from metadata
+    let items = [];
+    let customerInfo = {};
+    
+    if (session.metadata) {
+      try {
+        if (session.metadata.items) {
+          items = JSON.parse(session.metadata.items);
+        }
+        if (session.metadata.customerInfo) {
+          customerInfo = JSON.parse(session.metadata.customerInfo);
+        }
+      } catch (parseError) {
+        console.error('Error parsing metadata:', parseError);
+      }
+    }
+
+    console.log('Processing payment verification for session:', sessionId);
+    console.log('Customer:', customerEmail, 'Items:', items.length);
+    
+    // Check what products exist in database
+    const allProducts = await Product.find({});
+    console.log('=== DATABASE PRODUCTS ===');
+    console.log('Total products in database:', allProducts.length);
+    if (allProducts.length > 0) {
+      console.log('Sample product IDs:', allProducts.slice(0, 3).map(p => ({ id: p.id, name: p.name })));
+    }
+
+    // Find or create user
+    let user = await User.findOne({ email: customerEmail });
+    if (!user) {
+      console.log('Creating new user for:', customerEmail);
+      user = await User.create({
+        email: customerEmail,
+        clerkId: `stripe_${sessionId}_${Date.now()}`,
+        firstName: customerName.split(' ')[0] || '',
+        lastName: customerName.split(' ').slice(1).join(' ') || '',
+        createdAt: new Date()
+      });
+    }
+
+    console.log('User found/created:', user._id);
+
+    // Create order record
+    const orderData = {
+      email: customerEmail,
+      items: items.map(item => ({
+        id: item.id || item.productId,
+        name: item.name || 'Unknown Product',
+        image: item.image || '',
+        price: Number(item.price || item.new_price || 0),
+        quantity: Number(item.quantity || 1)
+      })),
+      amount: amount_total,
+      currency: currency,
+      status: 'confirmed',
+      stripeSessionId: sessionId,
+      stripePaymentIntentId: session.payment_intent,
+      buyerId: user._id,
+      totalPrice: amount_total / 100,
+      purchaseDate: new Date(),
+      createdAt: new Date(),
+      
+      customerInfo: {
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone,
+        ...customerInfo
+      },
+      
+      shipping: {
+        name: shipping.name || customerName,
+        phone: shipping.phone || customerPhone,
+        address: {
+          line1: shippingAddress.line1 || '',
+          line2: shippingAddress.line2 || '',
+          city: shippingAddress.city || '',
+          state: shippingAddress.state || '',
+          postal_code: shippingAddress.postal_code || '',
+          country: shippingAddress.country || ''
+        }
+      },
+      
+      timeline: [{
+        status: 'confirmed',
+        at: new Date(),
+        note: 'Payment confirmed via Stripe'
+      }],
+      
+      products: []
+    };
+
+    console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
+
+    // Create order in database
+    const order = await Order.create(orderData);
+    console.log('Order created successfully:', order._id);
+
+    // Update product purchases
+    console.log('=== UPDATING PRODUCT PURCHASES ===');
+    console.log('Items to process:', items);
+    
+    for (const item of items) {
+      try {
+        console.log(`Looking for product with ID: ${item.id} (type: ${typeof item.id})`);
+        const productDoc = await Product.findOne({ id: Number(item.id) });
+        console.log(`Product found:`, productDoc ? `Yes - ${productDoc.name}` : 'No');
+        
+        if (productDoc) {
+          console.log(`Updating product ${productDoc.name} purchases`);
+          
+          productDoc.purchases.push({
+            userId: user._id.toString(),
+            email: customerEmail,
+            quantity: Number(item.quantity || 1),
+            date: new Date(),
+            deliveryAddress: {
+              name: shipping.name || customerName,
+              phone: shipping.phone || customerPhone,
+              address: shippingAddress.line1 || '',
+              city: shippingAddress.city || '',
+              postalCode: shippingAddress.postal_code || '',
+              country: shippingAddress.country || ''
+            }
+          });
+          
+          await productDoc.save();
+          
+          order.products.push({
+            productId: productDoc._id,
+            quantity: Number(item.quantity || 1)
+          });
+        }
+      } catch (productError) {
+        console.error(`Error updating product ${item.id}:`, productError);
+      }
+    }
+
+    await order.save();
+    console.log('Order updated with product references');
+
+    // Send confirmation email
+    try {
+      console.log('=== SENDING EMAIL ===');
+      console.log('Customer email:', customerEmail);
+      console.log('SMTP config check:', {
+        host: process.env.SMTP_HOST,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS ? 'SET' : 'NOT SET'
+      });
+      
+      const itemsList = items.map(item => 
+        `${item.name} x${item.quantity} - $${(Number(item.price || 0)).toFixed(2)}`
+      ).join('\n');
+      
+      console.log('Items list for email:', itemsList);
+      
+      await sendOrderEmail(customerEmail, 'Order Confirmation - Shopdeshi', `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #e91e63;">Thank you for your order!</h2>
+          <p>Hi ${customerName},</p>
+          <p>Your payment has been successfully processed.</p>
+          
+          <div style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <h3>Order Details:</h3>
+            <p><strong>Order ID:</strong> ${order._id}</p>
+            <p><strong>Total:</strong> $${(amount_total / 100).toFixed(2)} ${currency.toUpperCase()}</p>
+            <p><strong>Payment Method:</strong> Card ending in ${session.payment_method_types?.[0] || 'Card'}</p>
+          </div>
+          
+          <div style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <h3>Items Ordered:</h3>
+            <pre style="white-space: pre-wrap;">${itemsList}</pre>
+          </div>
+          
+          ${shipping.address ? `
+          <div style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <h3>Shipping Address:</h3>
+            <p>${shipping.name || customerName}<br>
+            ${shippingAddress.line1}<br>
+            ${shippingAddress.line2 ? shippingAddress.line2 + '<br>' : ''}
+            ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postal_code}<br>
+            ${shippingAddress.country}</p>
+          </div>
+          ` : ''}
+          
+          <p>We'll send you tracking information once your order ships.</p>
+          <p>Thank you for shopping with Shopdeshi!</p>
+        </div>
+      `);
+      console.log('Confirmation email sent to:', customerEmail);
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Payment verified and order created',
+      order: order
+    });
+
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying payment: ' + error.message
+    });
+  }
+});
+
+
+// Health check endpoints
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running' });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'API is running', timestamp: new Date().toISOString() });
+});
 
 // Start server
 const serverPort = process.env.PORT || 4000;

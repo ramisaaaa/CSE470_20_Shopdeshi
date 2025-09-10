@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import axios from "axios";
+import { useUser } from '@clerk/nextjs';
 //import SuccessPage from "../success_payment/page";
 interface CartItem {
   id: number;
@@ -13,6 +14,7 @@ interface CartItem {
 }
 
 export default function Cart() {
+  const { user, isLoaded, isSignedIn } = useUser();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -37,6 +39,23 @@ export default function Cart() {
     window.addEventListener('cartUpdated', handleCartUpdate);
     return () => window.removeEventListener('cartUpdated', handleCartUpdate);
   }, []);
+
+  // Auto-populate email from Google login
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      const userEmail = user.primaryEmailAddress?.emailAddress;
+      const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName || '';
+      
+      if (userEmail) {
+        setCustomerInfo(prev => ({
+          ...prev,
+          email: userEmail,
+          name: userName
+        }));
+        console.log('✅ Auto-populated email from Google login:', userEmail);
+      }
+    }
+  }, [isLoaded, isSignedIn, user]);
 
   const loadCartFromStorage = () => {
     try {
@@ -139,11 +158,11 @@ export default function Cart() {
         quantity: Number(item.quantity),
         // FIX: Extract simple string from Next.js image object
         image: typeof item.image === 'string' ? item.image : 
-               (item.image?.src || item.image || '/placeholder.jpg')
+               ((item.image as any)?.src || item.image || '/placeholder.jpg')
       })),
       customerInfo,
       // ✅ FIXED: Frontend variables only
-      successUrl: `${window.location.origin}/success`,
+      successUrl: `${window.location.origin}/success_payment`,
       cancelUrl: `${window.location.origin}/cart`
     };
     
