@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 
 // Delivery status stepper component
 function DeliveryStepper({ status }: { status: string }) {
@@ -371,6 +372,7 @@ function ProductReview({
 
 // Main Buyer Page Component
 export default function BuyerPage() {
+  const { user, isLoaded, isSignedIn } = useUser();
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [complaintOrderId, setComplaintOrderId] = useState<string | null>(null);
@@ -382,7 +384,7 @@ export default function BuyerPage() {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
 
-  // ✅ SSR-Safe email management
+  // ✅ SSR-Safe email management with Google login integration
   useEffect(() => {
     setIsClient(true);
     
@@ -392,6 +394,16 @@ export default function BuyerPage() {
         return 'user@example.com';
       }
       
+      // First, try to get email from Google login
+      if (isLoaded && isSignedIn && user) {
+        const userEmail = user.primaryEmailAddress?.emailAddress;
+        if (userEmail) {
+          console.log('✅ Using Google login email:', userEmail);
+          return userEmail;
+        }
+      }
+      
+      // Fallback to localStorage
       let email = localStorage.getItem('userEmail');
       if (!email) {
         email = prompt('Please enter your email to view orders:') || '';
@@ -407,7 +419,7 @@ export default function BuyerPage() {
     const email = getUserEmail();
     setBuyerEmail(email);
     setEmailLoaded(true);
-  }, []);
+  }, [isLoaded, isSignedIn, user]);
 
   useEffect(() => {
     if (!isClient) return;
