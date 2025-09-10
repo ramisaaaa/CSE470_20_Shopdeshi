@@ -11,10 +11,37 @@ export default function SuccessPage() {
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
-    if (sessionId) {
+    console.log('=== SUCCESS PAGE LOADED ===');
+    console.log('URL:', window.location.href);
+    console.log('Search params:', searchParams.toString());
+    console.log('Session ID from URL:', sessionId);
+    
+    // Try multiple ways to get the session ID
+    let extractedSessionId = sessionId;
+    
+    if (!extractedSessionId) {
+      // Try to extract from URL hash or other parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      extractedSessionId = urlParams.get('session_id') || urlParams.get('sessionId');
+    }
+    
+    if (!extractedSessionId) {
+      // Try to extract from the URL path
+      const urlPath = window.location.pathname;
+      const sessionMatch = urlPath.match(/session_id=([^&]+)/);
+      if (sessionMatch) {
+        extractedSessionId = sessionMatch[1];
+      }
+    }
+    
+    console.log('Final extracted session ID:', extractedSessionId);
+    
+    if (extractedSessionId) {
+      console.log('✅ Session ID found, verifying payment...');
       // Verify the payment was successful
-      verifyPayment(sessionId);
+      verifyPayment(extractedSessionId);
     } else {
+      console.log('❌ No session ID found in URL');
       setError('No payment session found');
       setLoading(false);
     }
@@ -29,25 +56,45 @@ export default function SuccessPage() {
 
   const verifyPayment = async (sessionId: string) => {
     try {
-      console.log('Verifying payment for session:', sessionId);
+      console.log('=== FRONTEND: Verifying payment for session:', sessionId);
       
-      // You can add a backend endpoint to verify the session if needed
-      // For now, we'll just show success and clear cart
-      
-      // Clear the cart since payment was successful
-      localStorage.removeItem('cart');
-      
-      // Simulate order details (you can fetch real details from backend)
-      setOrderDetails({
-        sessionId,
-        status: 'confirmed',
-        message: 'Your payment has been processed successfully!'
+      // Call backend to verify payment and create order
+      console.log('=== FRONTEND: Calling backend verification endpoint...');
+      const response = await fetch('http://localhost:4000/api/verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
       });
+
+      console.log('=== FRONTEND: Response status:', response.status);
+      const result = await response.json();
+      console.log('=== FRONTEND: Response data:', result);
+      
+      if (result.success) {
+        console.log('Payment verified successfully:', result);
+        
+        // Clear the cart since payment was successful
+        localStorage.removeItem('cart');
+        
+        // Set order details from backend response
+        setOrderDetails({
+          sessionId,
+          status: 'confirmed',
+          message: 'Your payment has been processed successfully!',
+          orderId: result.order?._id,
+          total: result.order?.totalPrice
+        });
+      } else {
+        console.error('Payment verification failed:', result.message);
+        setError(result.message || 'Payment verification failed');
+      }
       
       setLoading(false);
     } catch (error) {
       console.error('Error verifying payment:', error);
-      setError('Error verifying payment');
+      setError('Error verifying payment. Please contact support if the issue persists.');
       setLoading(false);
     }
   };
