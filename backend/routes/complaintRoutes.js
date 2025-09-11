@@ -10,6 +10,7 @@ router.patch('/complaints/:id/status', ctrl.updateComplaintStatus);
 router.post('/api/complaint', ctrl.createOrAppendComplaint);
 router.get('/api/complaints', ctrl.getComplaintsForAdmin);
 router.patch('/api/complaint/:id/status', ctrl.patchComplaintStatus);
+router.get('/api/complaints/:orderId', ctrl.getComplaintThread);
 
 module.exports = router;
 

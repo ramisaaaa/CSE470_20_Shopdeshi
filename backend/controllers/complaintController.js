@@ -82,6 +82,26 @@ exports.getComplaintsForAdmin = async (_req, res) => {
   }
 };
 
+// Fetch complaint thread for a specific order and buyer email
+exports.getComplaintThread = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { email } = req.query;
+    if (!orderId || !email) {
+      return res.status(400).json({ success: false, message: 'orderId and email are required' });
+    }
+    const user = await User.findOne({ email: String(email) });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const complaint = await Complaint.findOne({ orderId, buyerId: user._id });
+    if (!complaint) return res.json({ success: true, complaints: [] });
+    // Return a simple thread array for the UI
+    const thread = complaint.thread?.map(t => ({ from: t.from, message: t.message, timestamp: t.timestamp, _id: t._id })) || [];
+    res.json({ success: true, complaints: thread });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 exports.patchComplaintStatus = async (req, res) => {
   try {
     const { status } = req.body;
