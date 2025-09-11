@@ -33,7 +33,7 @@ const Sidebar = () => {
         
         <Link to='/admin/Complaints' style={{textDecoration:"none"}}>
            <div className="sidebar-item">
-              <img src={complaints_icon} alt="" />
+              <img src={warning} alt="" style={{width: '30px', height: '30px'}} />
               <p>Manage Complaints</p>
            </div>
         </Link>

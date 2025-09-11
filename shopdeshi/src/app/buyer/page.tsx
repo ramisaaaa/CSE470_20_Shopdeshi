@@ -251,7 +251,7 @@ function ProductReview({
         productId: Number(productId), 
         rating, 
         comment: comment.trim(),
-        user: buyerEmail,
+        buyerEmail,
         timestamp: new Date().toISOString()
       });
       

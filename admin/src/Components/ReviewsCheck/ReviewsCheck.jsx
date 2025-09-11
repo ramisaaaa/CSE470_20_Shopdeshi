@@ -22,31 +22,49 @@ const ReviewsCheck = () => {
     filterReviews();
   }, [reviews, filter]);
 
-  // Fetch all products and extract their reviews
+  // Fetch reviews from backend (admin endpoint)
   const fetchAllReviews = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/allproducts`);
+      const response = await fetch(`${API_BASE}/admin/reviews`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const products = await response.json();
-      
-      let allReviews = [];
-      (Array.isArray(products) ? products : []).forEach(product => {
-        if (product.reviews && product.reviews.length > 0) {
-          product.reviews.forEach(review => {
-            const computedHasBad = checkForBadWords(review.comment);
-            allReviews.push({
-              ...review,
-              productId: product.id,
-              productName: product.name,
-              hasBadWords: review.hasBadWords ?? computedHasBad,
-              flagged: review.flagged ?? computedHasBad,
-            });
+      const data = await response.json();
+      if (data?.success && Array.isArray(data.reviews) && data.reviews.length > 0) {
+        // Ensure fields present and backfill bad-word flags if missing
+        const normalized = data.reviews.map((r) => {
+          const computedHasBad = checkForBadWords(r.comment);
+          return {
+            ...r,
+            hasBadWords: r.hasBadWords ?? computedHasBad,
+            flagged: r.flagged ?? computedHasBad,
+          };
+        });
+        setReviews(normalized);
+      } else {
+        // Fallback: aggregate from products if admin endpoint empty
+        const prodResp = await fetch(`${API_BASE}/allproducts`);
+        if (prodResp.ok) {
+          const products = await prodResp.json();
+          let allReviews = [];
+          (Array.isArray(products) ? products : []).forEach(product => {
+            if (product.reviews && product.reviews.length > 0) {
+              product.reviews.forEach(review => {
+                const computedHasBad = checkForBadWords(review.comment);
+                allReviews.push({
+                  ...review,
+                  productId: product.id,
+                  productName: product.name,
+                  hasBadWords: review.hasBadWords ?? computedHasBad,
+                  flagged: review.flagged ?? computedHasBad,
+                });
+              });
+            }
           });
+          setReviews(allReviews);
+        } else {
+          setReviews([]);
         }
-      });
-      
-      setReviews(allReviews);
+      }
     } catch (error) {
       console.error('Error fetching reviews:', error);
       showAlert('Failed to fetch reviews', 'error');
