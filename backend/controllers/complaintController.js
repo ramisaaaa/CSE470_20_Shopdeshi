@@ -7,8 +7,8 @@ exports.submitComplaint = async (req, res) => {
     const { buyerId, sellerId, orderId, message } = req.body;
     const complaint = new Complaint({ complaintId: Date.now(), buyerId, sellerId, orderId, message });
     await complaint.save();
-    res.status(201).json({ success: true, complaint });
-  } catch (err) {
+    res.status(201).json({ success: true, complaint });                                
+  } catch (err) {                    
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

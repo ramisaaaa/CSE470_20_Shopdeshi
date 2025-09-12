@@ -9,7 +9,7 @@ export default function SellerPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // ✅ Fetch products from live backend
+    
     fetch("http://localhost:4000/allproducts") // replace with your actual API route
       .then((res) => res.ok ? res.json() : [])
       .then((data) => {
@@ -22,7 +22,7 @@ export default function SellerPage() {
         setError("Could not load products.");
       });
 
-    // ✅ Fetch orders (keep mock for now if needed)
+    
     fetch("/mock-orders.json")
       .then((res) => res.ok ? res.json() : [])
       .then((data) => setOrders(Array.isArray(data) ? data : []));
