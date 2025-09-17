@@ -496,20 +496,7 @@ We welcome contributions to ShopDeshi! Please follow these steps:
 - Follow React and Node.js best practices
 - Maintain consistent formatting
 
-## 🐛 Bug Reports & Feature Requests
 
-### Bug Reports
-Please include:
-- Steps to reproduce the issue
-- Expected vs actual behavior
-- Screenshots if applicable
-- Browser/environment details
-
-### Feature Requests
-Please include:
-- Clear description of the feature
-- Use case and business value
-- Mockups or examples if available
 
 ## 📄 License
 
