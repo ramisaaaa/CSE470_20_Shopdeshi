@@ -1,5 +1,8 @@
 # ShopDeshi - Artisan Marketplace 🏺
 
+youtube link https://youtu.be/mPT3Ss3wZ5A?si=ULoJIxAdL2YkHod7
+
+
 A comprehensive direct marketplace connecting Bangladeshi artisans with global buyers, built with the MERN stack. ShopDeshi creates a bridge between handicraft makers and customers without third-party involvement, featuring direct communication, secure payments, educational content, and authentic craft experiences.
 
 ## 🎯 Project Vision
